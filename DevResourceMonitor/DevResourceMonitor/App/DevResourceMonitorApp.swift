@@ -75,6 +75,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var settingsWindowController: NSWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Set activation policy to regular so menu bar shows app name
+        NSApplication.shared.setActivationPolicy(.regular)
+
         // Request notification permissions
         NotificationService().requestAuthorization()
 
