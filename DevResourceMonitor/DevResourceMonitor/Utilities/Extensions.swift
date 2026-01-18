@@ -1,33 +1,43 @@
 import Foundation
 import SwiftUI
 
-// MARK: - Font Extensions (Scaled +4pt)
+// MARK: - Font Scale Manager
+
+/// Manages the configurable font size scale
+enum FontScaleManager {
+    private static let defaultScale: CGFloat = 4.0
+
+    /// Current font size scale (reads from UserDefaults)
+    static var sizeIncrease: CGFloat {
+        let scale = UserDefaults.standard.double(forKey: "fontSizeScale")
+        return scale > 0 ? CGFloat(scale) : defaultScale
+    }
+}
+
+// MARK: - Font Extensions (Scaled with configurable increase)
 
 extension Font {
-    /// Global font size increase
-    private static let sizeIncrease: CGFloat = 4
-
-    // Scaled semantic fonts (+4pt from system defaults)
-    static let scaledLargeTitle: Font = .system(size: 30 + sizeIncrease)    // largeTitle ~26pt
-    static let scaledTitle: Font = .system(size: 26 + sizeIncrease)         // title ~22pt
-    static let scaledTitle2: Font = .system(size: 21 + sizeIncrease)        // title2 ~17pt
-    static let scaledTitle3: Font = .system(size: 18 + sizeIncrease)        // title3 ~14pt
-    static let scaledHeadline: Font = .system(size: 17 + sizeIncrease, weight: .semibold)
-    static let scaledSubheadline: Font = .system(size: 15 + sizeIncrease)   // subheadline ~11pt
-    static let scaledBody: Font = .system(size: 17 + sizeIncrease)          // body ~13pt
-    static let scaledCallout: Font = .system(size: 15 + sizeIncrease)       // callout ~11pt
-    static let scaledFootnote: Font = .system(size: 14 + sizeIncrease)      // footnote ~10pt
-    static let scaledCaption: Font = .system(size: 13 + sizeIncrease)       // caption ~10pt
-    static let scaledCaption2: Font = .system(size: 12 + sizeIncrease)      // caption2 ~9pt
+    // Scaled semantic fonts (configurable increase from system defaults)
+    static var scaledLargeTitle: Font { .system(size: 30 + FontScaleManager.sizeIncrease) }
+    static var scaledTitle: Font { .system(size: 26 + FontScaleManager.sizeIncrease) }
+    static var scaledTitle2: Font { .system(size: 21 + FontScaleManager.sizeIncrease) }
+    static var scaledTitle3: Font { .system(size: 18 + FontScaleManager.sizeIncrease) }
+    static var scaledHeadline: Font { .system(size: 17 + FontScaleManager.sizeIncrease, weight: .semibold) }
+    static var scaledSubheadline: Font { .system(size: 15 + FontScaleManager.sizeIncrease) }
+    static var scaledBody: Font { .system(size: 17 + FontScaleManager.sizeIncrease) }
+    static var scaledCallout: Font { .system(size: 15 + FontScaleManager.sizeIncrease) }
+    static var scaledFootnote: Font { .system(size: 14 + FontScaleManager.sizeIncrease) }
+    static var scaledCaption: Font { .system(size: 13 + FontScaleManager.sizeIncrease) }
+    static var scaledCaption2: Font { .system(size: 12 + FontScaleManager.sizeIncrease) }
 
     /// Scaled system font with custom size
     static func scaledSystem(size: CGFloat, weight: Font.Weight = .regular, design: Font.Design = .default) -> Font {
-        .system(size: size + sizeIncrease, weight: weight, design: design)
+        .system(size: size + FontScaleManager.sizeIncrease, weight: weight, design: design)
     }
 
     /// Scaled monospaced body font
     static var scaledMonospacedBody: Font {
-        .system(size: 17 + sizeIncrease, design: .monospaced)
+        .system(size: 17 + FontScaleManager.sizeIncrease, design: .monospaced)
     }
 }
 

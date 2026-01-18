@@ -180,15 +180,16 @@ struct ProcessListView: View {
 
             TableColumn("Actions") { process in
                 if !ProcessKiller.isSystemProcess(process) {
-                    Button(action: {
-                        Task {
-                            _ = await ProcessKiller.terminateWithConfirmation(process)
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.red.opacity(0.7))
+                        .font(.system(size: 16))
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            Task { @MainActor in
+                                _ = await ProcessKiller.terminateWithConfirmation(process)
+                            }
                         }
-                    }) {
-                        Image(systemName: "xmark.circle")
-                            .foregroundColor(.red.opacity(0.7))
-                    }
-                    .buttonStyle(.plain)
+                        .help("Terminate process")
                 }
             }
             .width(50)

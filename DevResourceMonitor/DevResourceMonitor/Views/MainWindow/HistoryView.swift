@@ -4,6 +4,7 @@ import SwiftUI
 struct HistoryView: View {
     @ObservedObject var viewModel: MonitorViewModel
     @ObservedObject var historyViewModel: HistoryViewModel
+    @State private var chartMode: AppSettings.HistoryChartMode = .bar
 
     var body: some View {
         ScrollView {
@@ -26,6 +27,7 @@ struct HistoryView: View {
             .padding()
         }
         .onAppear {
+            chartMode = viewModel.settings.defaultHistoryChartMode
             historyViewModel.loadData()
         }
     }
@@ -56,10 +58,30 @@ struct HistoryView: View {
 
             Spacer()
 
-            Button(action: { historyViewModel.loadData() }) {
-                Image(systemName: "arrow.clockwise")
+            HStack(spacing: 4) {
+                Button(action: { chartMode = .bar }) {
+                    Image(systemName: "chart.bar.fill")
+                        .font(.system(size: 18))
+                        .frame(width: 36, height: 28)
+                        .background(chartMode == .bar ? Color.accentColor : Color.clear)
+                        .foregroundColor(chartMode == .bar ? .white : .primary)
+                        .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+
+                Button(action: { chartMode = .line }) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 18))
+                        .frame(width: 36, height: 28)
+                        .background(chartMode == .line ? Color.accentColor : Color.clear)
+                        .foregroundColor(chartMode == .line ? .white : .primary)
+                        .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
             }
-            .help("Refresh data")
+            .padding(4)
+            .background(Color(.separatorColor).opacity(0.3))
+            .cornerRadius(8)
         }
         .padding()
         .background(Color(.windowBackgroundColor).opacity(0.5))
@@ -109,19 +131,35 @@ struct HistoryView: View {
 
     // MARK: - Charts
 
+    @ViewBuilder
     private var chartsSection: some View {
         VStack(spacing: 20) {
-            HistoryBarChart(
-                snapshots: historyViewModel.aggregatedSnapshots(),
-                categories: viewModel.categories,
-                valueType: .cpu
-            )
+            switch chartMode {
+            case .bar:
+                HistoryBarChart(
+                    snapshots: historyViewModel.aggregatedSnapshots(),
+                    categories: viewModel.categories,
+                    valueType: .cpu
+                )
 
-            HistoryBarChart(
-                snapshots: historyViewModel.aggregatedSnapshots(),
-                categories: viewModel.categories,
-                valueType: .memory
-            )
+                HistoryBarChart(
+                    snapshots: historyViewModel.aggregatedSnapshots(),
+                    categories: viewModel.categories,
+                    valueType: .memory
+                )
+            case .line:
+                HistoryLineChart(
+                    snapshots: historyViewModel.aggregatedSnapshots(),
+                    categories: viewModel.categories,
+                    valueType: .cpu
+                )
+
+                HistoryLineChart(
+                    snapshots: historyViewModel.aggregatedSnapshots(),
+                    categories: viewModel.categories,
+                    valueType: .memory
+                )
+            }
         }
     }
 

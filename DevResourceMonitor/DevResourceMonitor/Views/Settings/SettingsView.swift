@@ -102,6 +102,38 @@ struct GeneralSettingsView: View {
                         viewModel.saveSettings()
                     }
                 }
+
+                // Default history chart mode
+                HStack {
+                    Text("History Chart Style")
+                    Spacer()
+                    Picker("", selection: $viewModel.settings.defaultHistoryChartMode) {
+                        Text("Bar Chart").tag(AppSettings.HistoryChartMode.bar)
+                        Text("Line Chart").tag(AppSettings.HistoryChartMode.line)
+                    }
+                    .frame(width: 150)
+                    .onChange(of: viewModel.settings.defaultHistoryChartMode) { _, _ in
+                        viewModel.saveSettings()
+                    }
+                }
+
+                // Font size scale
+                HStack {
+                    Text("Font Size Scale")
+                    Spacer()
+                    Picker("", selection: $viewModel.settings.fontSizeScale) {
+                        Text("0pt").tag(0.0)
+                        Text("+2pt").tag(2.0)
+                        Text("+4pt").tag(4.0)
+                        Text("+6pt").tag(6.0)
+                        Text("+8pt").tag(8.0)
+                    }
+                    .frame(width: 150)
+                    .onChange(of: viewModel.settings.fontSizeScale) { _, newValue in
+                        UserDefaults.standard.set(newValue, forKey: "fontSizeScale")
+                        viewModel.saveSettings()
+                    }
+                }
             } header: {
                 Text("Display")
             }
