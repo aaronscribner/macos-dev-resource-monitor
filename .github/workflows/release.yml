@@ -1,0 +1,83 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: false
+        default: ''
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: cd DevResourceMonitor && xcodegen generate
+
+      - name: Build app
+        run: |
+          xcodebuild -project DevResourceMonitor/DevResourceMonitor.xcodeproj \
+            -scheme DevResourceMonitor \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="-" \
+            -quiet
+
+      - name: Create DMG
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          if [ -z "$VERSION" ] || [ "$VERSION" = "$GITHUB_REF_NAME" ]; then
+            VERSION="1.0"
+          fi
+
+          mkdir -p release
+          mkdir -p build/dmg-contents
+          cp -R "build/Build/Products/Release/DevResourceMonitor.app" build/dmg-contents/
+          ln -sf /Applications build/dmg-contents/Applications
+          hdiutil create -volname "DevResourceMonitor" \
+            -srcfolder build/dmg-contents \
+            -ov -format UDZO \
+            "release/DevResourceMonitor-${VERSION}.dmg"
+          rm -rf build/dmg-contents
+
+          echo "DMG_NAME=DevResourceMonitor-${VERSION}.dmg" >> $GITHUB_ENV
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DevResourceMonitor-DMG
+          path: release/*.dmg
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.dmg
+          generate_release_notes: true
+          body: |
+            ## Installation
+
+            1. Download `${{ env.DMG_NAME }}` below
+            2. Open the DMG and drag DevResourceMonitor to Applications
+            3. On first launch, right-click the app and select "Open" to bypass Gatekeeper
+
+            ## Requirements
+
+            - macOS 14.0 (Sonoma) or later
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
