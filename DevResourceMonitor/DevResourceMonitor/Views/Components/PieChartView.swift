@@ -7,6 +7,9 @@ struct ResourcePieChart: View {
     let title: String
     let valueType: ValueType
 
+    @State private var hoveredItem: CategoryUsage?
+    @State private var mouseLocation: CGPoint = .zero
+
     enum ValueType {
         case cpu
         case memory
@@ -25,7 +28,36 @@ struct ResourcePieChart: View {
                 )
                 .foregroundStyle(item.swiftUIColor)
                 .cornerRadius(4)
+                .opacity(hoveredItem == nil || hoveredItem?.id == item.id ? 1.0 : 0.5)
             }
+            .chartOverlay { proxy in
+                GeometryReader { geometry in
+                    Rectangle()
+                        .fill(Color.clear)
+                        .contentShape(Rectangle())
+                        .onContinuousHover { phase in
+                            switch phase {
+                            case .active(let location):
+                                mouseLocation = location
+                                hoveredItem = findItem(at: location, in: geometry, proxy: proxy)
+                            case .ended:
+                                hoveredItem = nil
+                            }
+                        }
+                }
+            }
+            .overlay(alignment: .top) {
+                if let item = hoveredItem {
+                    TooltipView(
+                        name: item.name,
+                        value: formattedValue(for: item),
+                        color: item.swiftUIColor,
+                        processCount: item.processCount
+                    )
+                    .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.15), value: hoveredItem?.id)
             .frame(height: 200)
 
             // Legend
@@ -71,6 +103,73 @@ struct ResourcePieChart: View {
         case .memory:
             return Formatters.memory(item.memoryMB)
         }
+    }
+
+    private func findItem(at location: CGPoint, in geometry: GeometryProxy, proxy: ChartProxy) -> CategoryUsage? {
+        let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+        let dx = location.x - center.x
+        let dy = location.y - center.y
+        let distance = sqrt(dx * dx + dy * dy)
+        let radius = min(geometry.size.width, geometry.size.height) / 2
+
+        // Check if within the donut ring (between inner and outer radius)
+        let innerRadius = radius * 0.5
+        guard distance >= innerRadius && distance <= radius else {
+            return nil
+        }
+
+        // Calculate angle from center (0 degrees at top, clockwise)
+        var angle = atan2(dx, -dy) * 180 / .pi
+        if angle < 0 {
+            angle += 360
+        }
+
+        // Find which segment this angle falls into
+        let total = filteredData.reduce(0.0) { $0 + value(for: $1) }
+        guard total > 0 else { return nil }
+
+        var currentAngle: Double = 0
+        for item in filteredData {
+            let itemValue = value(for: item)
+            let sliceAngle = (itemValue / total) * 360
+            if angle >= currentAngle && angle < currentAngle + sliceAngle {
+                return item
+            }
+            currentAngle += sliceAngle
+        }
+
+        return nil
+    }
+}
+
+// MARK: - Tooltip View
+
+private struct TooltipView: View {
+    let name: String
+    let value: String
+    let color: Color
+    let processCount: Int
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(name)
+                .font(.scaledCaption)
+                .fontWeight(.medium)
+            Text(value)
+                .font(.scaledCaption)
+                .foregroundColor(.secondary)
+            Text("(\(processCount) \(processCount == 1 ? "process" : "processes"))")
+                .font(.scaledCaption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color(.windowBackgroundColor))
+        .cornerRadius(6)
+        .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
     }
 }
 

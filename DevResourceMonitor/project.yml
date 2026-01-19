@@ -38,5 +38,21 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_APP_SANDBOX: NO
         ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_TESTABILITY: YES
     entitlements:
       path: DevResourceMonitor/Resources/DevResourceMonitor.entitlements
+
+  DevResourceMonitorTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: DevResourceMonitorTests
+    dependencies:
+      - target: DevResourceMonitor
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.devresourcemonitor.tests
+        PRODUCT_NAME: DevResourceMonitorTests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/DevResourceMonitor.app/Contents/MacOS/DevResourceMonitor"
+        BUNDLE_LOADER: "$(TEST_HOST)"

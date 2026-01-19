@@ -10,7 +10,7 @@ PROJECT_DIR := DevResourceMonitor
 APP_PATH := $(BUILD_DIR)/Build/Products/Release/$(APP_NAME).app
 DMG_NAME := $(APP_NAME)-$(VERSION).dmg
 
-.PHONY: all build clean dmg run open xcodegen install-deps
+.PHONY: all build clean dmg run open xcodegen install-deps test test-verbose
 
 all: dmg
 
@@ -23,6 +23,8 @@ help:
 	@echo "  make build    - Build the app only"
 	@echo "  make dmg      - Build and create DMG installer"
 	@echo "  make run      - Build and run the app"
+	@echo "  make test     - Run unit and integration tests"
+	@echo "  make test-verbose - Run tests with verbose output"
 	@echo "  make open     - Open project in Xcode"
 	@echo "  make clean    - Remove build artifacts"
 	@echo ""
@@ -81,3 +83,25 @@ run: build
 # Open in Xcode
 open: xcodegen
 	@open $(PROJECT_DIR)/$(APP_NAME).xcodeproj
+
+# Run tests
+test: xcodegen
+	@echo "Running tests..."
+	@xcodebuild test -project $(PROJECT_DIR)/$(APP_NAME).xcodeproj \
+		-scheme $(APP_NAME) \
+		-destination 'platform=macOS' \
+		-derivedDataPath $(BUILD_DIR) \
+		CODE_SIGN_IDENTITY="-" \
+		-quiet \
+		2>&1 | grep -E "(Test Case|passed|failed|error:)" || true
+	@echo "Tests complete."
+
+# Run tests with verbose output
+test-verbose: xcodegen
+	@echo "Running tests (verbose)..."
+	@xcodebuild test -project $(PROJECT_DIR)/$(APP_NAME).xcodeproj \
+		-scheme $(APP_NAME) \
+		-destination 'platform=macOS' \
+		-derivedDataPath $(BUILD_DIR) \
+		CODE_SIGN_IDENTITY="-"
+	@echo "Tests complete."
