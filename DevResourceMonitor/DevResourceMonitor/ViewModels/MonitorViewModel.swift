@@ -118,7 +118,8 @@ class MonitorViewModel: ObservableObject {
         // Create snapshot
         let snapshot = resourceAggregator.createSnapshot(
             from: processes,
-            totalSystemMemoryMB: processMonitor.totalSystemMemoryMB
+            totalSystemMemoryMB: processMonitor.totalSystemMemoryMB,
+            totalCPU: processMonitor.totalCPU
         )
         currentSnapshot = snapshot
         print("MonitorViewModel: Snapshot created - CPU: \(snapshot.totalCPU), Memory: \(snapshot.totalMemoryMB) MB")

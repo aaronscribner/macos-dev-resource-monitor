@@ -105,7 +105,8 @@ class ResourceAggregator {
     /// Create a resource snapshot from current process data
     func createSnapshot(
         from processes: [ProcessInfo],
-        totalSystemMemoryMB: Double
+        totalSystemMemoryMB: Double,
+        totalCPU: Double
     ) -> ResourceSnapshot {
         let categoryUsages = groupByCategory(processes)
 
@@ -130,7 +131,7 @@ class ResourceAggregator {
 
         return ResourceSnapshot(
             timestamp: Date(),
-            totalCPU: processes.reduce(0) { $0 + $1.cpuPercent },
+            totalCPU: totalCPU,
             totalMemoryMB: processes.reduce(0) { $0 + $1.memoryMB },
             totalSystemMemoryMB: totalSystemMemoryMB,
             categoryBreakdown: breakdown,

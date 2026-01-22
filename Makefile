@@ -2,7 +2,7 @@
 # =======================================
 
 APP_NAME := DevResourceMonitor
-VERSION := 1.0
+VERSION := 1.0.6
 BUILD_DIR := build
 RELEASE_DIR := release
 PROJECT_DIR := DevResourceMonitor

@@ -272,8 +272,14 @@ extension ProcessMonitor {
         Array(processesByMemory.prefix(count))
     }
 
-    /// Total CPU usage across all processes
+    /// Total CPU usage based on per-core kernel data (average across all cores)
     var totalCPU: Double {
+        guard !perCoreUsage.isEmpty else { return 0 }
+        return perCoreUsage.reduce(0) { $0 + $1.usage } / Double(perCoreUsage.count)
+    }
+
+    /// Total CPU from process summation (for category breakdown calculations)
+    var totalProcessCPU: Double {
         processes.reduce(0) { $0 + $1.cpuPercent }
     }
 
