@@ -4,7 +4,7 @@ import Foundation
 struct ResourceSnapshot: Codable, Identifiable {
     let id: UUID
     let timestamp: Date
-    let totalCPU: Double  // Raw CPU (can exceed 100% on multi-core)
+    let totalCPU: Double  // Average CPU across all cores (0-100%)
     let totalMemoryMB: Double
     let totalSystemMemoryMB: Double
     let cpuCoreCount: Int
@@ -33,8 +33,7 @@ struct ResourceSnapshot: Codable, Identifiable {
 
     /// CPU usage as a percentage of total system capacity (0-100%)
     var cpuPercent: Double {
-        guard cpuCoreCount > 0 else { return 0 }
-        return totalCPU / Double(cpuCoreCount)
+        totalCPU  // Already normalized to 0-100% from per-core average
     }
 
     /// Memory usage as a percentage of total system memory

@@ -15,6 +15,7 @@ class ProcessMonitor: ObservableObject {
     @Published var isMonitoring: Bool = false
     @Published var lastUpdate: Date?
     @Published var totalSystemMemoryMB: Double = 0
+    @Published var usedSystemMemoryMB: Double = 0
     @Published var perCoreUsage: [CoreUsage] = []
 
     private var timer: Timer?
@@ -85,21 +86,24 @@ class ProcessMonitor: ObservableObject {
         // Capture previous ticks before going to background thread
         let prevTicks = self.previousCPUTicks
 
-        // Fetch processes and per-core CPU in parallel
-        let (fetchedProcesses, coreUsages, newTicks) = await withCheckedContinuation { continuation in
+        // Fetch processes, per-core CPU, and system memory in parallel
+        let (fetchedProcesses, coreUsages, newTicks, usedMemory) = await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 let processes = Self.parseProcessList()
                 let (cores, updatedTicks) = Self.fetchPerCoreCPU(previousTicks: prevTicks)
+                let memoryUsed = Self.fetchSystemMemoryUsage()
                 print("ProcessMonitor: Parsed \(processes.count) processes")
-                continuation.resume(returning: (processes, cores, updatedTicks))
+                continuation.resume(returning: (processes, cores, updatedTicks, memoryUsed))
             }
         }
 
-        self.processes = fetchedProcesses
+        // Set these BEFORE processes, since processes triggers the ViewModel binding
         self.perCoreUsage = coreUsages
         self.previousCPUTicks = newTicks
+        self.usedSystemMemoryMB = usedMemory
         self.lastUpdate = Date()
-        print("ProcessMonitor: Updated with \(fetchedProcesses.count) processes, totalCPU: \(self.totalCPU)")
+        self.processes = fetchedProcesses  // This triggers snapshot creation - must be last
+        print("ProcessMonitor: Updated with \(fetchedProcesses.count) processes, totalCPU: \(self.totalCPU), usedMemory: \(usedMemory) MB")
     }
 
     /// Fetch per-core CPU usage using Mach host_processor_info
@@ -247,6 +251,34 @@ class ProcessMonitor: ObservableObject {
         }
         return 0
     }
+
+    /// Fetch actual system memory usage using Mach VM statistics
+    nonisolated private static func fetchSystemMemoryUsage() -> Double {
+        var stats = vm_statistics64()
+        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.stride / MemoryLayout<integer_t>.stride)
+
+        let result = withUnsafeMutablePointer(to: &stats) { statsPtr in
+            statsPtr.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { intPtr in
+                host_statistics64(mach_host_self(), HOST_VM_INFO64, intPtr, &count)
+            }
+        }
+
+        guard result == KERN_SUCCESS else {
+            return 0
+        }
+
+        let pageSize = Double(vm_kernel_page_size)
+
+        // Calculate used memory matching Activity Monitor's "Memory Used":
+        // App Memory (active + wired) + Compressed
+        // Note: inactive memory is reclaimable and NOT counted as "used"
+        let active = Double(stats.active_count) * pageSize
+        let wired = Double(stats.wire_count) * pageSize
+        let compressed = Double(stats.compressor_page_count) * pageSize
+
+        let usedBytes = active + wired + compressed
+        return usedBytes / (1024 * 1024)  // Convert to MB
+    }
 }
 
 // MARK: - Filtering and Sorting
@@ -283,14 +315,19 @@ extension ProcessMonitor {
         processes.reduce(0) { $0 + $1.cpuPercent }
     }
 
-    /// Total memory usage in MB
+    /// Total memory usage in MB (from system-level Mach API)
     var totalMemoryMB: Double {
+        usedSystemMemoryMB
+    }
+
+    /// Total memory from process summation (for category breakdown calculations)
+    var totalProcessMemoryMB: Double {
         processes.reduce(0) { $0 + $1.memoryMB }
     }
 
-    /// Memory usage as percentage
+    /// Memory usage as percentage (based on actual system memory usage)
     var memoryPercent: Double {
         guard totalSystemMemoryMB > 0 else { return 0 }
-        return (totalMemoryMB / totalSystemMemoryMB) * 100
+        return (usedSystemMemoryMB / totalSystemMemoryMB) * 100
     }
 }

@@ -199,7 +199,7 @@ final class ResourceAggregatorTests: XCTestCase {
             AppProcessInfo(id: 3, name: "node", cpuPercent: 30.0, memoryMB: 300.0)
         ]
 
-        let snapshot = aggregator.createSnapshot(from: processes, totalSystemMemoryMB: 16384.0)
+        let snapshot = aggregator.createSnapshot(from: processes, totalSystemMemoryMB: 16384.0, totalCPU: 180.0, totalMemoryMB: 3800.0)
 
         XCTAssertEqual(snapshot.totalCPU, 180.0)
         XCTAssertEqual(snapshot.totalMemoryMB, 3800.0)
@@ -219,7 +219,7 @@ final class ResourceAggregatorTests: XCTestCase {
             ))
         }
 
-        let snapshot = aggregator.createSnapshot(from: processes, totalSystemMemoryMB: 16384.0)
+        let snapshot = aggregator.createSnapshot(from: processes, totalSystemMemoryMB: 16384.0, totalCPU: 600.0, totalMemoryMB: 12000.0)
 
         XCTAssertEqual(snapshot.topProcesses.count, 10)
         // Verify sorted by CPU descending
